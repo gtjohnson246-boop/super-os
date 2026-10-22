@@ -51,6 +51,19 @@
     </div>
 
     <script>
+        // Prevent space bar from scrolling page
+        window.addEventListener("keydown", function (e) {
+            if (
+                e.key === " " ||
+                e.code === "Space" ||
+                e.keyCode === 32
+            ) {
+                if (document.activeElement !== userInput) {
+                    e.preventDefault();
+                }
+            }
+        });
+
         // Global variables & state
         const VALID_USERNAME = "gabeee";
         const VALID_PASSWORD = "6655";
@@ -110,7 +123,7 @@
 
         function showBootScreen() {
             print("=".repeat(55));
-            print("  __  __ _       _        ____   ____  ");
+            print("  __  __ _        _        ____    ____  ");
             print(" |  \\/  (_)_ __ (_)      / __ \\ / ___| ");
             print(" | |\\/| | | '_ \\| |_____| |  | |\\___ \\ ");
             print(" | |  | | | | | | |_____| |__| | ___) |");
@@ -166,7 +179,7 @@
                 print(currentUsernameInput);
                 isEnteringPassword = true;
                 print("Password: ");
-                userInput.type = "password"; // Hide password text natively
+                userInput.type = "password"; 
             } else {
                 let password = input.trim();
                 isEnteringPassword = false;
@@ -258,49 +271,60 @@
                             currentDirItems[dirName] = { type: "dir", children: {} };
                             print(`Directory '${dirName}' created.`);
                         }
-}
-break;
-case "cat":
-if (args.length === 0) {
-print("Error: 'cat' requires a file name.");
-} else {
-let fileName = args.join(" ");
-if (currentDirItems[fileName] && currentDirItems[fileName].type === "file") {
-print(currentDirItems[fileName].content);
-} else {
-print(Error: File '${fileName}' not found.);
-}
-}
-break;
-case "search_engine":
-print("Opening Google in your web browser...");
-window.open("https://google.com", "_blank");
-break;
-case "open_downloads":
-print("Opening your Chromebook's file manager...");
-window.open("chrome://file-manager", "_blank");
-break;
-case "clear":
-clearTerminal();
-break;
-default:
-print(Unknown command: '${cmd}'. Type 'help' for a list of commands.);
-}
-}
-// Event listener for user input submission
-userInput.addEventListener("keydown", function(e) {
-if (e.key === "Enter") {
-let inputVal = userInput.value;
-userInput.value = "";
-if (!isAuthenticated) {
-handleAuth(inputVal);
-} else {
-executeCommand(inputVal);
-}
-updatePrompt();
-}
-});
-// Keep input focused when clicking anywhere on screen
-document.addEventListener("click", () => userInput.focus());
-// Initialize App
-showBootScreen();
+                    }
+                    break;
+
+                case "cat":
+                    if (args.length === 0) {
+                        print("Error: 'cat' requires a file name.");
+                    } else {
+                        let fileName = args.join(" ");
+                        if (currentDirItems[fileName] && currentDirItems[fileName].type === "file") {
+                            print(currentDirItems[fileName].content);
+                        } else {
+                            print(`Error: File '${fileName}' not found.`);
+                        }
+                    }
+                    break;
+
+                case "search_engine":
+                    print("Opening Google in your web browser...");
+                    window.open("https://google.com", "_blank");
+                    break;
+
+                case "open_downloads":
+                    print("Opening your Chromebook's file manager...");
+                    window.open("chrome://file-manager", "_blank");
+                    break;
+
+                case "clear":
+                    clearTerminal();
+                    break;
+
+                default:
+                    print(`Unknown command: '${cmd}'. Type 'help' for a list of commands.`);
+            }
+        }
+
+        // Event listener for user input submission
+        userInput.addEventListener("keydown", function(e) {
+            if (e.key === "Enter") {
+                let inputVal = userInput.value;
+                userInput.value = "";
+                if (!isAuthenticated) {
+                    handleAuth(inputVal);
+                } else {
+                    executeCommand(inputVal);
+                }
+                updatePrompt();
+            }
+        });
+
+        // Keep input focused when clicking anywhere on screen
+        document.addEventListener("click", () => userInput.focus());
+
+        // Initialize App
+        showBootScreen();
+    </script>
+</body>
+</html>
