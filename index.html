@@ -79,7 +79,13 @@
             "root": {
                 type: "dir",
                 children: {
-                    "readme.txt": { type: "file", content: "Welcome to Mini-JS-OS! This is a browser-simulated file." }
+                    "readme.txt": { type: "file", content: "Welcome to Mini-JS-OS! This is a browser-simulated file." },
+                    "downloads": {
+                        type: "dir",
+                        children: {
+                            "sample.txt": { type: "file", content: "This is a virtual downloaded file inside your mini-os!" }
+                        }
+                    }
                 }
             }
         };
@@ -229,7 +235,7 @@
                     print("  mkdir <name>   - Create a new directory");
                     print("  cat <file>     - Read and display a text file");
                     print("  search_engine  - Open Google in your web browser");
-                    print("  open_downloads - Pull up your Chromebook's system file manager");
+                    print("  open_downloads - Open the virtual downloads directory");
                     print("  clear          - Clear the starting screen / terminal screen");
                     print("  exit           - Exit the mini OS shell");
                     break;
@@ -293,8 +299,8 @@
                     break;
 
                 case "open_downloads":
-                    print("Opening your Chromebook's file manager...");
-                    window.open("chrome://file-manager", "_blank");
+                    print("Navigating to virtual downloads directory...");
+                    currentPath = ["root", "downloads"];
                     break;
 
                 case "clear":
