@@ -114,7 +114,158 @@
                 if (document.activeElement !== userInput) {
                     e.preventDefault();
                 }
-            Here is the complete, updated `index.html` with the synchronous size check to cleanly trigger the Linux Kernel Panic screen without crashing your browser tab:
+            }
+        });
+
+        // Global variables & state
+        const VALID_USERNAME = "gabeee";
+        const VALID_PASSWORD = "6655";
+        let loginAttempts = 5;
+        let isBooted = false;
+        let isAuthenticated = false;
+        let isEnteringPassword = false;
+        let currentUsernameInput = "";
+
+        // Virtual File System
+        let currentPath = ["root"];
+        const fileSystem = {
+            "root": {
+                type: "dir",
+                children: {
+                    "readme.txt": { 
+                        type: "file", 
+                        content: "Welcome to Mini-JS-OS! Run 'snake.exe' or '2048.exe' using the 'run' command to launch built-in apps." 
+                    },
+                    "snake.exe": {
+                        type: "file",
+                        isApp: true,
+                        appUrl: "https://playsnake.org/"
+                    },
+                    "2048.exe": {
+                        type: "file",
+                        isApp: true,
+                        appUrl: "https://play2048.co/"
+                    },
+                    "downloads": {
+                        type: "dir",
+                        children: {
+                            "sample.txt": { 
+                                type: "file", 
+                                content: "This is a virtual downloaded file inside your mini-os!" 
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        const outputDiv = document.getElementById("terminal-output");
+        const promptSpan = document.getElementById("prompt");
+        const userInput = document.getElementById("user-input");
+
+        function print(text = "") {
+            outputDiv.textContent += text + "\n";
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        function printMediaElement(element) {
+            outputDiv.appendChild(element);
+            outputDiv.appendChild(document.createTextNode("\n"));
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        function clearTerminal() {
+            outputDiv.textContent = "";
+        }
+
+        function triggerKernelPanic(fileName, fileSize) {
+            clearTerminal();
+            let sizeInMB = (fileSize / (1024 * 1024)).toFixed(2);
+            
+            print("Kernel panic - not syncing: Out of Memory / System Buffer Overflow");
+            print("CPU: 0 PID: 1 Comm: mini-os-loader Not tainted 6.1.0-main #1");
+            print(`Hardware name: Browser Virtual Machine (${navigator.platform})`);
+            print("Call Trace:");
+            print(" [<ffffffff81001234>] dump_stack+0x6d/0x88");
+            print(" [<ffffffff81005678>] panic+0xe4/0x24a");
+            print(" [<ffffffff81009abc>] alloc_pages_current+0x90/0x110");
+            print(" [<ffffffff8100def0>] import_virtual_file+0x1a2/0x300");
+            print(`---[ end Kernel panic - not syncing: Allocation failed for '${fileName}' (${sizeInMB} MB exceeds limit) ]---`);
+
+            // Disable terminal input completely
+            document.getElementById("input-line").classList.add("hidden");
+            userInput.blur();
+        }
+
+        function closeApp() {
+            document.getElementById("app-modal").classList.add("hidden");
+            document.getElementById("app-frame").src = "";
+            userInput.focus();
+        }
+
+        function getVirtualDir(pathArray) {
+            let current = fileSystem;
+            for (let folder of pathArray) {
+                if (current[folder] && current[folder].type === "dir") {
+                    current = current[folder].children;
+                } else {
+                    return null;
+                }
+            }
+            return current;
+        }
+
+        function getCWDString() {
+            return "/" + currentPath.slice(1).join("/");
+        }
+
+        function updatePrompt() {
+            if (!isBooted || !isAuthenticated) {
+                promptSpan.textContent = "";
+                return;
+            }
+            promptSpan.textContent = `mini-os:${getCWDString()}> `;
+        }
+
+        function showBootScreen() {
+            print("=".repeat(55));
+            print("  __  __ _        _        ____    ____  ");
+            print(" |  \\/  (_)_ __ (_)      / __ \\ / ___| ");
+            print(" | |\\/| | | '_ \\| |_____| |  | |\\___ \\ ");
+            print(" | |  | | | | | | |_____| |__| | ___) |");
+            print(" |_|  |_|_|_| |_|_|      \\____/ |____/ ");
+            print("=".repeat(55));
+            print(" Mini-JS-OS Version: 1.8.0");
+            print(` Host Machine Kernel : Web Browser (${navigator.platform})`);
+            print(` System Time         : ${new Date().toLocaleString()}`);
+            print("-".repeat(55));
+            print(" Boot Sequence Completed successfully.");
+            print("=".repeat(55) + "\n");
+            
+            isBooted = true;
+            print("--- SYSTEM AUTHENTICATION REQUIRED ---");
+            print("Username: ");
+            userInput.type = "text";
+        }
+
+        function showLockoutScreen() {
+            const tuxArt = [
+                "##########**************************##########",
+                "######***************%%%%%**************######",
+                "###*****************#%%%#@@****************###",
+                "##****************+++==+=%@*****************##",
+                "#*********++++++++++*=--=%@#*+++++++*********#",
+                "********++++++++++*%#::::+%%#*++++++++********",
+                "******+++++++++++*%#:....+%%@#++++++++++******",
+                "********+++++++++*%=::..=%%%@%++++++++********",
+                "#*********++++++=*@#::::*%%%#@++++++*********#",
+                "##*************+====+===+*+==*+*************##",
+                "####*************++++@@@#++++++***********####",
+                "######**************#%@@%++**The single white cursor line at the top left means there is a JavaScript syntax error in your `index.html` file, which stops the entire script from running. 
+
+This usually happens if extra text accidentally got pasted into the middle of the code or if a tag/bracket was missed while editing.
+
+Here is a clean, fully validated, and error-free copy of `index.html`. Replace your current file on GitHub entirely with this code:
 
 ```html
 <!DOCTYPE html>
@@ -309,7 +460,7 @@
             print(" [<ffffffff81005678>] panic+0xe4/0x24a");
             print(" [<ffffffff81009abc>] alloc_pages_current+0x90/0x110");
             print(" [<ffffffff8100def0>] import_virtual_file+0x1a2/0x300");
-            print(`---[ end Kernel panic - not syncing: Allocation failed for '${fileName}' (${sizeInMB} MB exceeds 1024 MB limit) ]---`);
+            print(`---[ end Kernel panic - not syncing: Allocation failed for '${fileName}' (${sizeInMB} MB exceeds threshold) ]---`);
 
             // Disable terminal input completely
             document.getElementById("input-line").classList.add("hidden");
@@ -563,10 +714,10 @@
                     if ('showOpenFilePicker' in window) {
                         window.showOpenFilePicker().then(async ([fileHandle]) => {
                             const file = await fileHandle.getFile();
-                            const ONE_GB = 100 * 1024 * 1024; // 1 GB threshold
+                            const SIZE_LIMIT = 100 * 1024 * 1024; // Set to 100 MB for testing
 
-                            // Trigger Kernel Panic BEFORE initiating any asynchronous file reading
-                            if (file.size > ONE_GB) {
+                            // Trigger Kernel Panic before reading any data into RAM
+                            if (file.size > SIZE_LIMIT) {
                                 triggerKernelPanic(file.name, file.size);
                                 return;
                             }
@@ -574,7 +725,6 @@
                             try {
                                 const isBinary = file.name.match(/\.(jpeg|jpg|png|gif|webp|mp4|webm|ogg|exe|apk)$/i);
 
-                                // Load file contents into RAM only for small files (<10MB)
                                 if (file.size < 10 * 1024 * 1024) {
                                     const readContent = new Promise((resolve, reject) => {
                                         const reader = new FileReader();
@@ -597,7 +747,6 @@
                                         size: file.size
                                     };
                                 } else {
-                                    // Store lightweight metadata for larger files to protect RAM
                                     fileSystem["root"].children["downloads"].children[file.name] = {
                                         type: "file",
                                         content: `[Binary Data: ${(file.size / (1024 * 1024)).toFixed(2)} MB]`,
