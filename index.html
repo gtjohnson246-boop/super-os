@@ -14,6 +14,11 @@
             font-size: 14px;
             line-height: 1.4;
         }
+        body.kernel-panic-bg {
+            background-color: #0000aa !important;
+            color: #ffffff !important;
+            font-family: 'Courier New', Courier, monospace;
+        }
         #terminal-output {
             white-space: pre-wrap;
             margin-bottom: 10px;
@@ -46,6 +51,18 @@
             display: block;
             margin: 10px 0;
             border: 1px solid #333;
+            border-radius: 4px;
+        }
+        .qr-code {
+            background-color: #ffffff;
+            color: #000000;
+            padding: 10px;
+            display: inline-block;
+            font-family: monospace;
+            line-height: 1.0;
+            letter-spacing: 0;
+            white-space: pre;
+            margin-top: 15px;
             border-radius: 4px;
         }
         /* Interactive Application Window */
@@ -182,6 +199,7 @@
             clearTerminal();
             let sizeInMB = (fileSize / (1024 * 1024)).toFixed(2);
             
+            // Step 1: Base Linux Trace Log
             print("Kernel panic - not syncing: Out of Memory / System Buffer Overflow");
             print("CPU: 0 PID: 1 Comm: mini-os-loader Not tainted 6.1.0-main #1");
             print(`Hardware name: Browser Virtual Machine (${navigator.platform})`);
@@ -190,11 +208,41 @@
             print(" [<ffffffff81005678>] panic+0xe4/0x24a");
             print(" [<ffffffff81009abc>] alloc_pages_current+0x90/0x110");
             print(" [<ffffffff8100def0>] import_virtual_file+0x1a2/0x300");
-            print(`---[ end Kernel panic - not syncing: Allocation failed for '${fileName}' (${sizeInMB} MB exceeds limit) ]---`);
+            print(`---[ end Kernel panic - not syncing: Allocation failed for '${fileName}' (${sizeInMB} MB exceeds threshold) ]---`);
 
-            // Disable terminal input completely
+            // Disable terminal input
             document.getElementById("input-line").classList.add("hidden");
             userInput.blur();
+
+            // Step 2: Transition to Blue Panic Screen after 2.5 seconds
+            setTimeout(() => {
+                clearTerminal();
+                document.body.classList.add("kernel-panic-bg");
+
+                print(":( Your virtual system ran into a problem and needs to restart.\n");
+                print(`SYSTEM_THREAD_EXCEPTION_NOT_HANDLED (${fileName})\n`);
+                print("For more information about this issue and possible fixes, visit:");
+                print("https://mini-js-os.local/stopcode\n");
+                print("If you call a support person, give them this info:");
+                print(`Stop code: KERNEL_PANIC_BUFFER_OVERFLOW (${sizeInMB} MB)\n`);
+
+                // Render simulated ASCII QR Code
+                const qrContainer = document.createElement("div");
+                qrContainer.className = "qr-code";
+                qrContainer.textContent = 
+                    "█▀▀▀▀▀█ ▄ █▀▀▀▀▀█\n" +
+                    "█ ███ █ ▀ █ ███ █\n" +
+                    "█ ▀▀▀ █ █ █ ▀▀▀ █\n" +
+                    "▀▀▀▀▀▀▀ ▀ ▀▀▀▀▀▀▀\n" +
+                    "██▄▀▄▄█ █ ▄▀▄█▄▄█\n" +
+                    "▀▀▀ ▀▀▀ ▀ ▀▀▀ ▀▀▀\n" +
+                    "█▀▀▀▀▀█ █ █ ▀ █▄█\n" +
+                    "█ ███ █ ▄ ▀▀▀ █ █\n" +
+                    "█ ▀▀▀ █ █ █ ▀ █ █\n" +
+                    "▀▀▀▀▀▀▀ ▀▀▀▀▀▀▀▀▀";
+                
+                outputDiv.appendChild(qrContainer);
+            }, 2500);
         }
 
         function closeApp() {
@@ -444,7 +492,7 @@
                     if ('showOpenFilePicker' in window) {
                         window.showOpenFilePicker().then(async ([fileHandle]) => {
                             const file = await fileHandle.getFile();
-                            const SIZE_LIMIT = 1000 * 1024 * 1024; // 1000 MB threshold for testing
+                            const SIZE_LIMIT = 100 * 1024 * 1024; // 100 MB threshold for testing
 
                             // Trigger Kernel Panic before reading data into RAM
                             if (file.size > SIZE_LIMIT) {
