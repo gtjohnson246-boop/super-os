@@ -563,7 +563,7 @@
                     if ('showOpenFilePicker' in window) {
                         window.showOpenFilePicker().then(async ([fileHandle]) => {
                             const file = await fileHandle.getFile();
-                            const ONE_GB = 1024 * 1024 * 1024; // 1 GB threshold
+                            const ONE_GB = 100 * 1024 * 1024; // 1 GB threshold
 
                             // Trigger Kernel Panic BEFORE initiating any asynchronous file reading
                             if (file.size > ONE_GB) {
