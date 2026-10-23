@@ -235,7 +235,7 @@
                     print("  mkdir <name>   - Create a new directory");
                     print("  cat <file>     - Read and display a text file");
                     print("  search_engine  - Open Google in your web browser");
-                    print("  open_downloads - Open the virtual downloads directory");
+                    print("  open_downloads - Import a file from your computer into /downloads");
                     print("  clear          - Clear the starting screen / terminal screen");
                     print("  exit           - Exit the mini OS shell");
                     break;
@@ -294,13 +294,35 @@
                     break;
 
                 case "search_engine":
-                    print("Opening Google in your web browser...");
+                    print("Opening Google in a new tab...");
+                    print("Tip: Download your file, then use 'open_downloads' to load it into mini-os!");
                     window.open("https://google.com", "_blank");
                     break;
 
                 case "open_downloads":
-                    print("Navigating to virtual downloads directory...");
-                    currentPath = ["root", "downloads"];
+                    print("Opening file picker to import a downloaded file...");
+                    if ('showOpenFilePicker' in window) {
+                        window.showOpenFilePicker().then(async ([fileHandle]) => {
+                            const file = await fileHandle.getFile();
+                            const text = await file.text();
+                            
+                            // Import file into virtual downloads directory
+                            fileSystem["root"].children["downloads"].children[file.name] = {
+                                type: "file",
+                                content: text
+                            };
+                            
+                            // Move prompt location to /downloads
+                            currentPath = ["root", "downloads"];
+                            print(`Successfully imported '${file.name}' into /downloads!`);
+                            print(`Type 'ls' to view files or 'cat ${file.name}' to read it.`);
+                            updatePrompt();
+                        }).catch(() => {
+                            print("File selection canceled.");
+                        });
+                    } else {
+                        print("Error: File System Access API is not supported in this browser.");
+                    }
                     break;
 
                 case "clear":
