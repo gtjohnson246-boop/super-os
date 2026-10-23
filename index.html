@@ -41,7 +41,7 @@
             display: none !important;
         }
         .terminal-media {
-            max-width: 400px;
+            max-width: 450px;
             max-height: 300px;
             display: block;
             margin: 10px 0;
@@ -89,7 +89,7 @@
                 children: {
                     "readme.txt": { 
                         type: "file", 
-                        content: "Welcome to Mini-JS-OS! Use 'open_downloads' to import files from your computer, or 'cat <file>' to view them." 
+                        content: "Welcome to Mini-JS-OS! Use 'open_downloads' to import files, or 'cat <file>' / 'run <file>' to view or launch them." 
                     },
                     "downloads": {
                         type: "dir",
@@ -253,7 +253,8 @@
                     print("  ls             - List files and folders");
                     print("  cd <dir>       - Change directory");
                     print("  mkdir <name>   - Create a new directory");
-                    print("  cat <file>     - Read/display text or media files");
+                    print("  cat <file>     - Read or display text, image, and video files");
+                    print("  run <file>     - Execute a program (.exe / .apk)");
                     print("  search_engine  - Open Google in your web browser");
                     print("  open_downloads - Import a file from your computer into /downloads");
                     print("  clear          - Clear the terminal screen");
@@ -307,14 +308,47 @@
                         let fileName = args.join(" ");
                         if (currentDirItems[fileName] && currentDirItems[fileName].type === "file") {
                             let fileData = currentDirItems[fileName];
-                            if (fileData.isDataURL && fileName.match(/\.(jpeg|jpg|png|gif|webp)$/i)) {
+                            
+                            if (fileName.match(/\.(jpeg|jpg|png|gif|webp)$/i)) {
                                 print(`Displaying image '${fileName}':`);
                                 let img = document.createElement("img");
                                 img.src = fileData.content;
                                 img.className = "terminal-media";
                                 printMediaElement(img);
+                            } else if (fileName.match(/\.(mp4|webm|ogg)$/i)) {
+                                print(`Playing video '${fileName}':`);
+                                let video = document.createElement("video");
+                                video.src = fileData.content;
+                                video.controls = true;
+                                video.className = "terminal-media";
+                                printMediaElement(video);
+                            } else if (fileName.match(/\.(exe|apk)$/i)) {
+                                print(`'${fileName}' is an executable package. Use 'run ${fileName}' to launch it.`);
                             } else {
                                 print(fileData.content);
+                            }
+                        } else {
+                            print(`Error: File '${fileName}' not found.`);
+                        }
+                    }
+                    break;
+
+                case "run":
+                    if (args.length === 0) {
+                        print("Error: 'run' requires an executable file name.");
+                    } else {
+                        let fileName = args.join(" ");
+                        if (currentDirItems[fileName] && currentDirItems[fileName].type === "file") {
+                            if (fileName.endsWith(".exe")) {
+                                print(`[Windows Subsystem Emulator] Starting '${fileName}'...`);
+                                print("Simulating setup wizard installation sequence...");
+                                print("Status: Process complete [Exit Code 0].");
+                            } else if (fileName.endsWith(".apk")) {
+                                print(`[Android Runtime Environment] Unpacking '${fileName}'...`);
+                                print("Verifying package signature...");
+                                print("Status: App installed in virtual environment.");
+                            } else {
+                                print(`Error: '${fileName}' is not an executable file (.exe or .apk).`);
                             }
                         } else {
                             print(`Error: File '${fileName}' not found.`);
@@ -335,22 +369,26 @@
                             const file = await fileHandle.getFile();
                             const reader = new FileReader();
 
-                            let isImage = file.name.match(/\.(jpeg|jpg|png|gif|webp)$/i);
+                            let isBinary = file.name.match(/\.(jpeg|jpg|png|gif|webp|mp4|webm|ogg|exe|apk)$/i);
 
                             reader.onload = function(e) {
                                 fileSystem["root"].children["downloads"].children[file.name] = {
                                     type: "file",
                                     content: e.target.result,
-                                    isDataURL: !!isImage
+                                    isBinary: !!isBinary
                                 };
                                 
                                 currentPath = ["root", "downloads"];
                                 print(`Successfully imported '${file.name}' into /downloads!`);
-                                print(`Type 'ls' to view files or 'cat ${file.name}' to open it.`);
+                                if (file.name.match(/\.(exe|apk)$/i)) {
+                                    print(`Type 'run ${file.name}' to execute this package.`);
+                                } else {
+                                    print(`Type 'ls' to view files or 'cat ${file.name}' to open it.`);
+                                }
                                 updatePrompt();
                             };
 
-                            if (isImage) {
+                            if (isBinary) {
                                 reader.readAsDataURL(file);
                             } else {
                                 reader.readAsText(file);
