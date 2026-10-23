@@ -178,6 +178,25 @@
             outputDiv.textContent = "";
         }
 
+        function triggerKernelPanic(fileName, fileSize) {
+            clearTerminal();
+            let sizeInMB = (fileSize / (1024 * 1024)).toFixed(2);
+            
+            print("Kernel panic - not syncing: Out of Memory / System Buffer Overflow");
+            print("CPU: 0 PID: 1 Comm: mini-os-loader Not tainted 6.1.0-main #1");
+            print(`Hardware name: Browser Virtual Machine (${navigator.platform})`);
+            print("Call Trace:");
+            print(" [<ffffffff81001234>] dump_stack+0x6d/0x88");
+            print(" [<ffffffff81005678>] panic+0xe4/0x24a");
+            print(" [<ffffffff81009abc>] alloc_pages_current+0x90/0x110");
+            print(" [<ffffffff8100def0>] import_virtual_file+0x1a2/0x300");
+            print(`---[ end Kernel panic - not syncing: Allocation failed for '${fileName}' (${sizeInMB} MB exceeds 1024 MB limit) ]---`);
+
+            // Disable terminal completely
+            document.getElementById("input-line").classList.add("hidden");
+            userInput.blur();
+        }
+
         function closeApp() {
             document.getElementById("app-modal").classList.add("hidden");
             document.getElementById("app-frame").src = "";
@@ -426,6 +445,14 @@
                         window.showOpenFilePicker().then(async ([fileHandle]) => {
                             try {
                                 const file = await fileHandle.getFile();
+                                const ONE_GB = 1024 * 1024 * 1024; // 1 GB size limit
+
+                                // Trigger Kernel Panic if file exceeds 1 GB
+                                if (file.size > ONE_GB) {
+                                    triggerKernelPanic(file.name, file.size);
+                                    return;
+                                }
+
                                 const isBinary = file.name.match(/\.(jpeg|jpg|png|gif|webp|mp4|webm|ogg|exe|apk)$/i);
                                 
                                 const readContent = new Promise((resolve, reject) => {
