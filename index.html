@@ -714,9 +714,9 @@ Here is a clean, fully validated, and error-free copy of `index.html`. Replace y
                     if ('showOpenFilePicker' in window) {
                         window.showOpenFilePicker().then(async ([fileHandle]) => {
                             const file = await fileHandle.getFile();
-                            const SIZE_LIMIT = 100 * 1024 * 1024; // Set to 100 MB for testing
+                            const SIZE_LIMIT = 100 * 1024 * 1024; // 100 MB threshold for testing
 
-                            // Trigger Kernel Panic before reading any data into RAM
+                            // 1. Immediate Size Check -> Trigger Panic instantly
                             if (file.size > SIZE_LIMIT) {
                                 triggerKernelPanic(file.name, file.size);
                                 return;
@@ -725,6 +725,7 @@ Here is a clean, fully validated, and error-free copy of `index.html`. Replace y
                             try {
                                 const isBinary = file.name.match(/\.(jpeg|jpg|png|gif|webp|mp4|webm|ogg|exe|apk)$/i);
 
+                                // Read into RAM only if under 10MB
                                 if (file.size < 10 * 1024 * 1024) {
                                     const readContent = new Promise((resolve, reject) => {
                                         const reader = new FileReader();
@@ -747,6 +748,7 @@ Here is a clean, fully validated, and error-free copy of `index.html`. Replace y
                                         size: file.size
                                     };
                                 } else {
+                                    // Metadata only for 10MB to 100MB files
                                     fileSystem["root"].children["downloads"].children[file.name] = {
                                         type: "file",
                                         content: `[Binary Data: ${(file.size / (1024 * 1024)).toFixed(2)} MB]`,
@@ -772,10 +774,6 @@ Here is a clean, fully validated, and error-free copy of `index.html`. Replace y
                     } else {
                         print("Error: File System Access API is not supported in this browser.");
                     }
-                    break;
-
-                case "clear":
-                    clearTerminal();
                     break;
 
                 default:
