@@ -143,6 +143,10 @@
         let isEnteringPassword = false;
         let currentUsernameInput = "";
 
+        // BIOS & System settings
+        let isKernelPanicEnabled = true;
+        let inBios = false;
+
         // Virtual File System
         let currentPath = ["root"];
         const fileSystem = {
@@ -225,6 +229,7 @@
                 print("https://mini-js-os.local/stopcode\n");
                 print("If you call a support person, give them this info:");
                 print(`Stop code: KERNEL_PANIC_BUFFER_OVERFLOW (${sizeInMB} MB)\n`);
+                print("Tip: Press Ctrl + Q to open Virtual BIOS settings.\n");
 
                 // Render simulated ASCII QR Code
                 const qrContainer = document.createElement("div");
@@ -243,6 +248,60 @@
                 
                 outputDiv.appendChild(qrContainer);
             }, 2500);
+        }
+
+        // Global shortcut listener for Ctrl + Q (Virtual BIOS Access)
+        window.addEventListener("keydown", function (e) {
+            if (e.ctrlKey && (e.key === "q" || e.key === "Q")) {
+                e.preventDefault();
+                openBiosMenu();
+            }
+        });
+
+        function openBiosMenu() {
+            inBios = true;
+            clearTerminal();
+            
+            // Restore normal terminal UI styling
+            document.body.classList.remove("kernel-panic-bg");
+            document.getElementById("input-line").classList.remove("hidden");
+            
+            print("=========================================================");
+            print("                SUPER-OS VIRTUAL BIOS V1.0               ");
+            print("=========================================================");
+            print(" [1] Toggle Kernel Panic Protection : " + (isKernelPanicEnabled ? "[ENABLED]" : "[DISABLED]"));
+            print(" [2] Reset OS Virtual Storage");
+            print(" [3] Exit BIOS & Reboot System");
+            print("=========================================================");
+            print("Enter 1, 2, or 3 to make a choice...\n");
+            
+            promptSpan.textContent = "BIOS> ";
+            userInput.focus();
+        }
+
+        function handleBiosInput(choice) {
+            if (choice === "1") {
+                isKernelPanicEnabled = !isKernelPanicEnabled;
+                print(`[BIOS] Kernel Panic Protection is now: ${isKernelPanicEnabled ? "ENABLED" : "DISABLED"}`);
+                print("Press 3 to exit BIOS and apply changes.\n");
+            } else if (choice === "2") {
+                print("[BIOS] Resetting virtual storage...");
+                fileSystem["root"].children["downloads"].children = {};
+                print("[BIOS] Downloads directory cleared.\n");
+            } else if (choice === "3") {
+                print("[BIOS] Rebooting system...\n");
+                inBios = false;
+                isAuthenticated = false;
+                isBooted = false;
+                loginAttempts = 5;
+                currentPath = ["root"];
+                setTimeout(() => {
+                    clearTerminal();
+                    showBootScreen();
+                }, 1000);
+            } else {
+                print("Invalid selection. Please type 1, 2, or 3.");
+            }
         }
 
         function closeApp() {
@@ -268,6 +327,10 @@
         }
 
         function updatePrompt() {
+            if (inBios) {
+                promptSpan.textContent = "BIOS> ";
+                return;
+            }
             if (!isBooted || !isAuthenticated) {
                 promptSpan.textContent = "";
                 return;
@@ -288,6 +351,7 @@
             print(` System Time         : ${new Date().toLocaleString()}`);
             print("-".repeat(55));
             print(" Boot Sequence Completed successfully.");
+            print(" Press Ctrl + Q at any time to open BIOS.");
             print("=".repeat(55) + "\n");
             
             isBooted = true;
@@ -494,8 +558,8 @@
                             const file = await fileHandle.getFile();
                             const SIZE_LIMIT = 100 * 1024 * 1024; // 100 MB threshold for testing
 
-                            // Trigger Kernel Panic before reading data into RAM
-                            if (file.size > SIZE_LIMIT) {
+                            // Trigger Kernel Panic only if enabled in BIOS
+                            if (file.size > SIZE_LIMIT && isKernelPanicEnabled) {
                                 triggerKernelPanic(file.name, file.size);
                                 return;
                             }
@@ -566,6 +630,12 @@
             if (e.key === "Enter") {
                 let inputVal = userInput.value;
                 userInput.value = "";
+
+                if (inBios) {
+                    handleBiosInput(inputVal.trim());
+                    return;
+                }
+
                 if (!isAuthenticated) {
                     handleAuth(inputVal);
                 } else {
