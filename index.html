@@ -48,6 +48,46 @@
             border: 1px solid #333;
             border-radius: 4px;
         }
+        /* App Launcher Modal Styling */
+        #app-modal {
+            position: fixed;
+            top: 5%;
+            left: 5%;
+            width: 90%;
+            height: 90%;
+            background-color: #000000;
+            border: 2px solid #00ff00;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.4);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+        }
+        #app-header {
+            background: #111;
+            color: #00ff00;
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #00ff00;
+        }
+        #close-btn {
+            background: #ff3333;
+            color: #ffffff;
+            border: none;
+            padding: 4px 10px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #close-btn:hover {
+            background: #cc0000;
+        }
+        #app-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
     </style>
 </head>
 <body>
@@ -56,6 +96,15 @@
     <div id="input-line">
         <span id="prompt"></span>
         <input type="text" id="user-input" autofocus autocomplete="off" spellcheck="false">
+    </div>
+
+    <!-- Interactive App Window Container -->
+    <div id="app-modal" class="hidden">
+        <div id="app-header">
+            <span id="app-title">Application Window</span>
+            <button id="close-btn" onclick="closeApp()">X Close</button>
+        </div>
+        <iframe id="app-frame" src=""></iframe>
     </div>
 
     <script>
@@ -81,7 +130,7 @@
         let isEnteringPassword = false;
         let currentUsernameInput = "";
 
-        // Virtual File System State
+        // Virtual File System State with built-in playable executables
         let currentPath = ["root"];
         const fileSystem = {
             "root": {
@@ -89,7 +138,17 @@
                 children: {
                     "readme.txt": { 
                         type: "file", 
-                        content: "Welcome to Mini-JS-OS! Use 'open_downloads' to import files, or 'cat <file>' / 'run <file>' to view or launch them." 
+                        content: "Welcome to Mini-JS-OS! Run 'snake.exe' or '2048.exe' using the 'run' command to play built-in apps." 
+                    },
+                    "snake.exe": {
+                        type: "file",
+                        isApp: true,
+                        appUrl: "https://playsnake.org/"
+                    },
+                    "2048.exe": {
+                        type: "file",
+                        isApp: true,
+                        appUrl: "https://play2048.co/"
                     },
                     "downloads": {
                         type: "dir",
@@ -121,6 +180,12 @@
 
         function clearTerminal() {
             outputDiv.textContent = "";
+        }
+
+        function closeApp() {
+            document.getElementById("app-modal").classList.add("hidden");
+            document.getElementById("app-frame").src = "";
+            userInput.focus();
         }
 
         function getVirtualDir(pathArray) {
@@ -254,7 +319,7 @@
                     print("  cd <dir>       - Change directory");
                     print("  mkdir <name>   - Create a new directory");
                     print("  cat <file>     - Read or display text, image, and video files");
-                    print("  run <file>     - Execute a program (.exe / .apk)");
+                    print("  run <file>     - Launch interactive web app (.exe)");
                     print("  search_engine  - Open Google in your web browser");
                     print("  open_downloads - Import a file from your computer into /downloads");
                     print("  clear          - Clear the terminal screen");
@@ -322,8 +387,8 @@
                                 video.controls = true;
                                 video.className = "terminal-media";
                                 printMediaElement(video);
-                            } else if (fileName.match(/\.(exe|apk)$/i)) {
-                                print(`'${fileName}' is an executable package. Use 'run ${fileName}' to launch it.`);
+                            } else if (fileData.isApp) {
+                                print(`'${fileName}' is an interactive app. Type 'run ${fileName}' to open it.`);
                             } else {
                                 print(fileData.content);
                             }
@@ -338,20 +403,15 @@
                         print("Error: 'run' requires an executable file name.");
                     } else {
                         let fileName = args.join(" ");
-                        if (currentDirItems[fileName] && currentDirItems[fileName].type === "file") {
-                            if (fileName.endsWith(".exe")) {
-                                print(`[Windows Subsystem Emulator] Starting '${fileName}'...`);
-                                print("Simulating setup wizard installation sequence...");
-                                print("Status: Process complete [Exit Code 0].");
-                            } else if (fileName.endsWith(".apk")) {
-                                print(`[Android Runtime Environment] Unpacking '${fileName}'...`);
-                                print("Verifying package signature...");
-                                print("Status: App installed in virtual environment.");
-                            } else {
-                                print(`Error: '${fileName}' is not an executable file (.exe or .apk).`);
-                            }
+                        let fileObj = currentDirItems[fileName];
+                        
+                        if (fileObj && fileObj.isApp) {
+                            print(`Launching app '${fileName}'...`);
+                            document.getElementById("app-title").textContent = `Running: ${fileName}`;
+                            document.getElementById("app-frame").src = fileObj.appUrl;
+                            document.getElementById("app-modal").classList.remove("hidden");
                         } else {
-                            print(`Error: File '${fileName}' not found.`);
+                            print(`Error: '${fileName}' is not an executable web app.`);
                         }
                     }
                     break;
@@ -369,7 +429,7 @@
                             const file = await fileHandle.getFile();
                             const reader = new FileReader();
 
-                            let isBinary = file.name.match(/\.(jpeg|jpg|png|gif|webp|mp4|webm|ogg|exe|apk)$/i);
+                            let isBinary = file.name.match(/\.(jpeg|jpg|png|gif|webp|mp4|webm|ogg)$/i);
 
                             reader.onload = function(e) {
                                 fileSystem["root"].children["downloads"].children[file.name] = {
@@ -380,11 +440,7 @@
                                 
                                 currentPath = ["root", "downloads"];
                                 print(`Successfully imported '${file.name}' into /downloads!`);
-                                if (file.name.match(/\.(exe|apk)$/i)) {
-                                    print(`Type 'run ${file.name}' to execute this package.`);
-                                } else {
-                                    print(`Type 'ls' to view files or 'cat ${file.name}' to open it.`);
-                                }
+                                print(`Type 'ls' to view files or 'cat ${file.name}' to open it.`);
                                 updatePrompt();
                             };
 
