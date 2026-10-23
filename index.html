@@ -48,7 +48,7 @@
             border: 1px solid #333;
             border-radius: 4px;
         }
-        /* App Launcher Modal Styling */
+        /* Interactive Application Window */
         #app-modal {
             position: fixed;
             top: 5%;
@@ -98,7 +98,7 @@
         <input type="text" id="user-input" autofocus autocomplete="off" spellcheck="false">
     </div>
 
-    <!-- Interactive App Window Container -->
+    <!-- Application Modal Window -->
     <div id="app-modal" class="hidden">
         <div id="app-header">
             <span id="app-title">Application Window</span>
@@ -108,13 +108,9 @@
     </div>
 
     <script>
-        // Prevent space bar from scrolling page
+        // Prevent space bar from scrolling page when terminal is focused
         window.addEventListener("keydown", function (e) {
-            if (
-                e.key === " " ||
-                e.code === "Space" ||
-                e.keyCode === 32
-            ) {
+            if (e.key === " " || e.code === "Space" || e.keyCode === 32) {
                 if (document.activeElement !== userInput) {
                     e.preventDefault();
                 }
@@ -130,7 +126,7 @@
         let isEnteringPassword = false;
         let currentUsernameInput = "";
 
-        // Virtual File System State with built-in playable executables
+        // Virtual File System
         let currentPath = ["root"];
         const fileSystem = {
             "root": {
@@ -138,7 +134,7 @@
                 children: {
                     "readme.txt": { 
                         type: "file", 
-                        content: "Welcome to Mini-JS-OS! Run 'snake.exe' or '2048.exe' using the 'run' command to play built-in apps." 
+                        content: "Welcome to Mini-JS-OS! Run 'snake.exe' or '2048.exe' using the 'run' command to launch built-in apps." 
                     },
                     "snake.exe": {
                         type: "file",
@@ -259,7 +255,6 @@
             tuxArt.forEach(line => print(line));
             print();
             
-            // Disable terminal completely
             document.getElementById("input-line").classList.add("hidden");
             userInput.blur();
         }
@@ -318,8 +313,8 @@
                     print("  ls             - List files and folders");
                     print("  cd <dir>       - Change directory");
                     print("  mkdir <name>   - Create a new directory");
-                    print("  cat <file>     - Read or display text, image, and video files");
-                    print("  run <file>     - Launch interactive web app (.exe)");
+                    print("  cat <file>     - Read or view text, image, and video files");
+                    print("  run <file>     - Launch an app or executable (.exe / .apk)");
                     print("  search_engine  - Open Google in your web browser");
                     print("  open_downloads - Import a file from your computer into /downloads");
                     print("  clear          - Clear the terminal screen");
@@ -374,7 +369,9 @@
                         if (currentDirItems[fileName] && currentDirItems[fileName].type === "file") {
                             let fileData = currentDirItems[fileName];
                             
-                            if (fileName.match(/\.(jpeg|jpg|png|gif|webp)$/i)) {
+                            if (fileName.match(/\.(exe|apk)$/i) || fileData.isApp) {
+                                print(`'${fileName}' is an executable file. Use 'run ${fileName}' to launch it.`);
+                            } else if (fileName.match(/\.(jpeg|jpg|png|gif|webp)$/i)) {
                                 print(`Displaying image '${fileName}':`);
                                 let img = document.createElement("img");
                                 img.src = fileData.content;
@@ -387,8 +384,6 @@
                                 video.controls = true;
                                 video.className = "terminal-media";
                                 printMediaElement(video);
-                            } else if (fileData.isApp) {
-                                print(`'${fileName}' is an interactive app. Type 'run ${fileName}' to open it.`);
                             } else {
                                 print(fileData.content);
                             }
@@ -410,8 +405,11 @@
                             document.getElementById("app-title").textContent = `Running: ${fileName}`;
                             document.getElementById("app-frame").src = fileObj.appUrl;
                             document.getElementById("app-modal").classList.remove("hidden");
+                        } else if (fileObj && (fileName.endsWith(".exe") || fileName.endsWith(".apk"))) {
+                            print(`Executing binary setup package for '${fileName}'...`);
+                            print("Status: Virtual deployment completed.");
                         } else {
-                            print(`Error: '${fileName}' is not an executable web app.`);
+                            print(`Error: '${fileName}' is not an executable application.`);
                         }
                     }
                     break;
@@ -423,31 +421,43 @@
                     break;
 
                 case "open_downloads":
-                    print("Opening file picker to import a downloaded file...");
+                    print("Opening local file picker to import a file...");
                     if ('showOpenFilePicker' in window) {
                         window.showOpenFilePicker().then(async ([fileHandle]) => {
-                            const file = await fileHandle.getFile();
-                            const reader = new FileReader();
+                            try {
+                                const file = await fileHandle.getFile();
+                                const isBinary = file.name.match(/\.(jpeg|jpg|png|gif|webp|mp4|webm|ogg|exe|apk)$/i);
+                                
+                                const readContent = new Promise((resolve, reject) => {
+                                    const reader = new FileReader();
+                                    reader.onload = () => resolve(reader.result);
+                                    reader.onerror = () => reject(reader.error);
+                                    
+                                    if (isBinary) {
+                                        reader.readAsDataURL(file);
+                                    } else {
+                                        reader.readAsText(file);
+                                    }
+                                });
 
-                            let isBinary = file.name.match(/\.(jpeg|jpg|png|gif|webp|mp4|webm|ogg)$/i);
+                                const content = await readContent;
 
-                            reader.onload = function(e) {
                                 fileSystem["root"].children["downloads"].children[file.name] = {
                                     type: "file",
-                                    content: e.target.result,
+                                    content: content,
                                     isBinary: !!isBinary
                                 };
-                                
+
                                 currentPath = ["root", "downloads"];
                                 print(`Successfully imported '${file.name}' into /downloads!`);
-                                print(`Type 'ls' to view files or 'cat ${file.name}' to open it.`);
+                                if (file.name.match(/\.(exe|apk)$/i)) {
+                                    print(`Type 'run ${file.name}' to launch this executable.`);
+                                } else {
+                                    print(`Type 'ls' to view files or 'cat ${file.name}' to open it.`);
+                                }
                                 updatePrompt();
-                            };
-
-                            if (isBinary) {
-                                reader.readAsDataURL(file);
-                            } else {
-                                reader.readAsText(file);
+                            } catch (err) {
+                                print("Error reading selected file.");
                             }
                         }).catch(() => {
                             print("File selection canceled.");
