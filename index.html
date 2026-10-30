@@ -520,7 +520,6 @@
             resultsDiv.innerHTML = "Fetching query results...";
 
             try {
-                // Fetch search JSON via DuckDuckGo Instant Answer API
                 const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
                 const data = await res.json();
 
