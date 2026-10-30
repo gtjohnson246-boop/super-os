@@ -100,10 +100,46 @@
         #close-btn:hover {
             background: #cc0000;
         }
-        #app-frame {
-            width: 100%;
-            height: 100%;
+        #app-content {
+            padding: 20px;
+            overflow-y: auto;
+            flex-grow: 1;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .search-input {
+            background: #111;
+            border: 1px solid #00ff00;
+            color: #fff;
+            padding: 8px;
+            flex-grow: 1;
+            font-family: inherit;
+        }
+        .search-btn {
+            background: #00ff00;
+            color: #000;
             border: none;
+            padding: 8px 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .search-result {
+            margin-bottom: 15px;
+            border-bottom: 1px dashed #333;
+            padding-bottom: 10px;
+        }
+        .search-result a {
+            color: #55ffff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .search-result a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -121,7 +157,7 @@
             <span id="app-title">Application Window</span>
             <button id="close-btn" onclick="closeApp()">X Close</button>
         </div>
-        <iframe id="app-frame" src=""></iframe>
+        <div id="app-content"></div>
     </div>
 
     <script>
@@ -202,18 +238,15 @@
         // --- MAXIMUM KIOSK / OS LOCKDOWN FUNCTIONS ---
         async function enterOSKioskMode() {
             try {
-                // 1. Force Fullscreen
                 if (!document.fullscreenElement) {
                     await document.documentElement.requestFullscreen();
                 }
 
-                // 2. Lock Keyboard Shortcuts
                 if ('keyboard' in navigator && 'lock' in navigator.keyboard) {
                     await navigator.keyboard.lock(["Escape", "Tab", "AltGraph"]);
                     print("[SYSTEM] Keyboard inputs locked to OS context.");
                 }
 
-                // 3. Pointer Lock (Traps mouse cursor inside OS window)
                 if (document.body.requestPointerLock) {
                     document.body.requestPointerLock();
                 }
@@ -222,7 +255,6 @@
             }
         }
 
-        // Prevent tab close / page refresh attempts
         window.addEventListener("beforeunload", (e) => {
             if (isAuthenticated) {
                 e.preventDefault();
@@ -230,14 +262,12 @@
             }
         });
 
-        // Instantly re-clamp Fullscreen Mode on any keypress if escaped
         window.addEventListener("keydown", (e) => {
             if (isAuthenticated && !document.fullscreenElement && !inBios) {
                 enterOSKioskMode();
             }
         });
 
-        // Monitor if fullscreen is exited and notify user
         document.addEventListener("fullscreenchange", () => {
             if (!document.fullscreenElement && isAuthenticated && !inBios) {
                 print("\n[WARNING] Kiosk Mode exited. Click or press any key to re-lock OS mode.");
@@ -248,7 +278,6 @@
             clearTerminal();
             let sizeInMB = (fileSize / (1024 * 1024)).toFixed(2);
             
-            // Step 1: Base Linux Trace Log
             print("Kernel panic - not syncing: Out of Memory / System Buffer Overflow");
             print("CPU: 0 PID: 1 Comm: mini-os-loader Not tainted 6.1.0-main #1");
             print(`Hardware name: Browser Virtual Machine (${navigator.platform})`);
@@ -259,11 +288,9 @@
             print(" [<ffffffff8100def0>] import_virtual_file+0x1a2/0x300");
             print(`---[ end Kernel panic - not syncing: Allocation failed for '${fileName}' (${sizeInMB} MB exceeds threshold) ]---`);
 
-            // Disable terminal input
             document.getElementById("input-line").classList.add("hidden");
             userInput.blur();
 
-            // Step 2: Transition to Blue Panic Screen after 2.5 seconds
             setTimeout(() => {
                 clearTerminal();
                 document.body.classList.add("kernel-panic-bg");
@@ -276,7 +303,6 @@
                 print(`Stop code: KERNEL_PANIC_BUFFER_OVERFLOW (${sizeInMB} MB)\n`);
                 print("Tip: Press Ctrl + Q to open Virtual BIOS settings.\n");
 
-                // Render simulated ASCII QR Code
                 const qrContainer = document.createElement("div");
                 qrContainer.className = "qr-code";
                 qrContainer.textContent = 
@@ -295,7 +321,6 @@
             }, 2500);
         }
 
-        // Global shortcut listener for Ctrl + Q (Virtual BIOS Access)
         window.addEventListener("keydown", function (e) {
             if (e.ctrlKey && (e.key === "q" || e.key === "Q")) {
                 e.preventDefault();
@@ -307,7 +332,6 @@
             inBios = true;
             clearTerminal();
             
-            // Restore normal terminal UI styling
             document.body.classList.remove("kernel-panic-bg");
             document.getElementById("input-line").classList.remove("hidden");
             
@@ -351,7 +375,7 @@
 
         function closeApp() {
             document.getElementById("app-modal").classList.add("hidden");
-            document.getElementById("app-frame").src = "";
+            document.getElementById("app-content").innerHTML = "";
             userInput.focus();
         }
 
@@ -413,7 +437,7 @@
                 "##****************+++==+=%@*****************##",
                 "#*********++++++++++*=--=%@#*+++++++*********#",
                 "********++++++++++*%#::::+%%#*++++++++********",
-                "******+++++++++++*%#:....+%%@#++++++++++******",
+                "******+++++++++++*%#:....+%@#++++++++++******",
                 "********+++++++++*%=::..=%%%@%++++++++********",
                 "#*********++++++=*@#::::*%%%#@++++++*********#",
                 "##*************+====+===+*+==*+*************##",
@@ -466,6 +490,76 @@
             }
         }
 
+        // --- NATIVE TERMINAL SEARCH ENGINE WIDGET ---
+        function launchNativeSearchEngine() {
+            const container = document.getElementById("app-content");
+            document.getElementById("app-title").textContent = "Native OS Web Search";
+            
+            container.innerHTML = `
+                <div class="search-box">
+                    <input type="text" id="os-search-input" class="search-input" placeholder="Type a search query and press Enter..." autofocus>
+                    <button class="search-btn" onclick="performOSSearch()">Search</button>
+                </div>
+                <div id="os-search-results">Enter a term above to search the web directly inside Mini-OS.</div>
+            `;
+            
+            document.getElementById("app-modal").classList.remove("hidden");
+            
+            const searchInput = document.getElementById("os-search-input");
+            searchInput.focus();
+            searchInput.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") performOSSearch();
+            });
+        }
+
+        async function performOSSearch() {
+            const query = document.getElementById("os-search-input").value.trim();
+            const resultsDiv = document.getElementById("os-search-results");
+            if (!query) return;
+
+            resultsDiv.innerHTML = "Fetching query results...";
+
+            try {
+                // Fetch search JSON via DuckDuckGo Instant Answer API
+                const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
+                const data = await res.json();
+
+                let html = "";
+
+                if (data.AbstractText) {
+                    html += `
+                        <div class="search-result">
+                            <h3>${data.Heading}</h3>
+                            <p>${data.AbstractText}</p>
+                            <a href="${data.AbstractURL}" target="_blank">Read full article ➔</a>
+                        </div>
+                    `;
+                }
+
+                if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+                    data.RelatedTopics.slice(0, 6).forEach(topic => {
+                        if (topic.Text && topic.FirstURL) {
+                            html += `
+                                <div class="search-result">
+                                    <p>${topic.Text}</p>
+                                    <a href="${topic.FirstURL}" target="_blank">Open Link ➔</a>
+                                </div>
+                            `;
+                        }
+                    });
+                }
+
+                if (!html) {
+                    html = `<p>No instant text results found for '${query}'.</p>
+                            <p><a href="https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}" target="_blank">Open DuckDuckGo web results directly ➔</a></p>`;
+                }
+
+                resultsDiv.innerHTML = html;
+            } catch (err) {
+                resultsDiv.innerHTML = "Error loading search results. Please check network connection.";
+            }
+        }
+
         function executeCommand(commandLine) {
             print(promptSpan.textContent + commandLine);
             let trimmed = commandLine.trim();
@@ -495,7 +589,7 @@
                     print("  mkdir <name>   - Create a new directory");
                     print("  cat <file>     - Read or view text, image, and video files");
                     print("  run <file>     - Launch an app or executable (.exe / .apk)");
-                    print("  search_engine  - Launch Web Browser inside Mini-OS");
+                    print("  search_engine  - Launch Native Search Widget inside Mini-OS");
                     print("  open_downloads - Import a file from your computer into /downloads");
                     print("  clear          - Clear the terminal screen");
                     print("  exit           - Exit the mini OS shell");
@@ -583,7 +677,7 @@
                         if (fileObj && fileObj.isApp) {
                             print(`Launching app '${fileName}'...`);
                             document.getElementById("app-title").textContent = `Running: ${fileName}`;
-                            document.getElementById("app-frame").src = fileObj.appUrl;
+                            document.getElementById("app-content").innerHTML = `<iframe src="${fileObj.appUrl}" style="width:100%; height:100%; border:none;"></iframe>`;
                             document.getElementById("app-modal").classList.remove("hidden");
                         } else if (fileObj && (fileName.endsWith(".exe") || fileName.endsWith(".apk"))) {
                             print(`Executing binary setup package for '${fileName}'...`);
@@ -595,11 +689,8 @@
                     break;
 
                 case "search_engine":
-                    print("Launching Web Browser Window inside Mini-OS...");
-                    document.getElementById("app-title").textContent = "Web Search Engine";
-                    // Uses DuckDuckGo HTML version to embed cleanly without iframe blocks
-                    document.getElementById("app-frame").src = "https://html.duckduckgo.com/html/";
-                    document.getElementById("app-modal").classList.remove("hidden");
+                    print("Launching Search Engine window...");
+                    launchNativeSearchEngine();
                     break;
 
                 case "open_downloads":
@@ -609,7 +700,6 @@
                             const file = await fileHandle.getFile();
                             const SIZE_LIMIT = 100 * 1024 * 1024; // 100 MB threshold for testing
 
-                            // Trigger Kernel Panic only if enabled in BIOS
                             if (file.size > SIZE_LIMIT && isKernelPanicEnabled) {
                                 triggerKernelPanic(file.name, file.size);
                                 return;
@@ -676,7 +766,6 @@
             }
         }
 
-        // Event listener for user input submission
         userInput.addEventListener("keydown", function(e) {
             if (e.key === "Enter") {
                 let inputVal = userInput.value;
@@ -696,7 +785,6 @@
             }
         });
 
-        // Click anywhere to focus input or re-trigger fullscreen mode
         document.addEventListener("click", () => {
             if (isAuthenticated && !document.fullscreenElement && !inBios) {
                 enterOSKioskMode();
@@ -704,7 +792,6 @@
             userInput.focus();
         });
 
-        // Initialize App
         showBootScreen();
     </script>
 </body>
