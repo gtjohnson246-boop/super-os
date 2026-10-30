@@ -238,6 +238,30 @@
             }
         };
 
+        // Built-in Internal Database (Guaranteed offline execution)
+        const localKnowledgeBase = {
+            "hawaii": {
+                title: "Hawaii",
+                snippet: "Hawaii is an island state located in the Western United States, in the Pacific Ocean.",
+                content: "Hawaii is a state in the Western United States, located in the Pacific Ocean about 2,000 miles from the U.S. mainland. It is the only state outside North America, the only state composed entirely of islands, and the only state in the tropics. Its capital is Honolulu on the island of Oahu."
+            },
+            "linux": {
+                title: "Linux Operating System",
+                snippet: "Linux is a family of open-source Unix-like operating systems based on the Linux kernel.",
+                content: "Linux is an open-source Unix-like operating system kernel first released by Linus Torvalds on September 17, 1991. Linux is typically packaged as a Linux distribution, which includes the kernel and supporting system software and libraries."
+            },
+            "chromeos": {
+                title: "ChromeOS",
+                snippet: "ChromeOS is a Linux-based operating system designed by Google.",
+                content: "ChromeOS is an operating system designed by Google that is derived from the open-source Chromium OS and uses the Google Chrome web browser as its principal user interface."
+            },
+            "computer": {
+                title: "Computer Systems",
+                snippet: "A computer is a machine that can be programmed to carry out sequences of arithmetic or logical operations.",
+                content: "Modern computers consist of processing elements (CPU), memory units (RAM), and input/output peripheral devices. They process digital data using instruction sets."
+            }
+        };
+
         const outputDiv = document.getElementById("terminal-output");
         const promptSpan = document.getElementById("prompt");
         const userInput = document.getElementById("user-input");
@@ -512,17 +536,17 @@
             }
         }
 
-        // --- NATIVE OS SEARCH & INTERNAL PAGE READER (NO IFRAMES) ---
+        // --- NATIVE OFFLINE SEARCH ENGINE & READER ---
         function launchNativeSearchEngine() {
             const container = document.getElementById("app-content");
-            document.getElementById("app-title").textContent = "Native OS Web Search Engine";
+            document.getElementById("app-title").textContent = "Native OS Search Engine";
             
             container.innerHTML = `
                 <div class="search-box">
-                    <input type="text" id="os-search-input" class="search-input" placeholder="Type a search query (e.g. Hawaii, Linux, Computers) and press Enter..." autofocus>
+                    <input type="text" id="os-search-input" class="search-input" placeholder="Type a search query (e.g. Hawaii, Linux, ChromeOS)..." autofocus>
                     <button class="search-btn" onclick="performOSSearch()">Search</button>
                 </div>
-                <div id="os-search-results">Enter a topic above to search and read pages directly inside Mini-OS.</div>
+                <div id="os-search-results">Type a query above to search inside Mini-OS.</div>
             `;
             
             document.getElementById("app-modal").classList.remove("hidden");
@@ -534,61 +558,47 @@
             });
         }
 
-        async function performOSSearch() {
-            const query = document.getElementById("os-search-input").value.trim();
+        function performOSSearch() {
+            const query = document.getElementById("os-search-input").value.trim().toLowerCase();
             const resultsDiv = document.getElementById("os-search-results");
             if (!query) return;
 
-            resultsDiv.innerHTML = "Searching encyclopedia database...";
+            let html = "";
+            let matches = 0;
 
-            try {
-                // Uses Wikipedia Search API (Free & unblocked, allows full text fetching inside JS)
-                const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`);
-                const data = await res.json();
-
-                let html = "";
-                if (data.query && data.query.search && data.query.search.length > 0) {
-                    data.query.search.forEach(item => {
-                        html += `
-                            <div class="search-result">
-                                <h3>${item.title}</h3>
-                                <p>${item.snippet}...</p>
-                                <button class="open-article-btn" onclick="readArticleInOS('${encodeURIComponent(item.title)}')">Read Full Page inside Mini-OS ➔</button>
-                            </div>
-                        `;
-                    });
-                } else {
-                    html = `<p>No search results found for '${query}'. Try another search query.</p>`;
+            Object.keys(localKnowledgeBase).forEach(key => {
+                const item = localKnowledgeBase[key];
+                if (key.includes(query) || item.title.toLowerCase().includes(query) || item.snippet.toLowerCase().includes(query)) {
+                    matches++;
+                    html += `
+                        <div class="search-result">
+                            <h3>${item.title}</h3>
+                            <p>${item.snippet}</p>
+                            <button class="open-article-btn" onclick="readArticleInOS('${key}')">Read Page inside Mini-OS ➔</button>
+                        </div>
+                    `;
                 }
+            });
 
-                resultsDiv.innerHTML = html;
-            } catch (err) {
-                resultsDiv.innerHTML = "Error fetching search query. Check internet connection.";
+            if (matches === 0) {
+                html = `<p>No local entries found matching '${query}'. Available topics: hawaii, linux, chromeos, computer.</p>`;
             }
+
+            resultsDiv.innerHTML = html;
         }
 
-        async function readArticleInOS(title) {
+        function readArticleInOS(key) {
             const container = document.getElementById("app-content");
-            const decodedTitle = decodeURIComponent(title);
-            document.getElementById("app-title").textContent = `Mini-OS Reader: ${decodedTitle}`;
-            
-            container.innerHTML = "<p>Loading full page text...</p>";
+            const item = localKnowledgeBase[key];
+            document.getElementById("app-title").textContent = `Mini-OS Reader: ${item.title}`;
 
-            try {
-                // Fetches full text content of the page directly without iframe
-                const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${title}`);
-                const data = await res.json();
-
-                container.innerHTML = `
-                    <button class="search-btn" style="margin-bottom:15px;" onclick="launchNativeSearchEngine()">◀ Back to Search</button>
-                    <div class="article-view">
-                        <h2>${data.title}</h2>
-                        <p>${data.extract || "No full summary text available."}</p>
-                    </div>
-                `;
-            } catch (err) {
-                container.innerHTML = "<p>Error loading page text content.</p>";
-            }
+            container.innerHTML = `
+                <button class="search-btn" style="margin-bottom:15px;" onclick="launchNativeSearchEngine()">◀ Back to Search</button>
+                <div class="article-view">
+                    <h2>${item.title}</h2>
+                    <p>${item.content}</p>
+                </div>
+            `;
         }
 
         function executeCommand(commandLine) {
@@ -729,7 +739,7 @@
                     if ('showOpenFilePicker' in window) {
                         window.showOpenFilePicker().then(async ([fileHandle]) => {
                             const file = await fileHandle.getFile();
-                            const SIZE_LIMIT = 100 * 1024 * 1024; // 100 MB threshold for testing
+                            const SIZE_LIMIT = 100 * 1024 * 1024;
 
                             if (file.size > SIZE_LIMIT && isKernelPanicEnabled) {
                                 triggerKernelPanic(file.name, file.size);
