@@ -106,8 +106,6 @@
             flex-grow: 1;
             color: #00ff00;
             font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            flex-direction: column;
         }
         .search-box {
             display: flex;
@@ -135,31 +133,21 @@
             border-bottom: 1px dashed #333;
             padding-bottom: 10px;
         }
-        .search-result a, .open-link-btn {
+        .search-result h3 {
+            margin: 0 0 5px 0;
+            color: #ffffff;
+        }
+        .search-result p {
+            margin: 0 0 5px 0;
+            color: #cccccc;
+        }
+        .search-result a {
             color: #55ffff;
             text-decoration: none;
             font-weight: bold;
-            cursor: pointer;
-            background: none;
-            border: none;
-            font-family: inherit;
-            padding: 0;
-            font-size: inherit;
         }
-        .search-result a:hover, .open-link-btn:hover {
+        .search-result a:hover {
             text-decoration: underline;
-        }
-        .os-browser-frame {
-            width: 100%;
-            height: 100%;
-            border: none;
-            background: #ffffff;
-            flex-grow: 1;
-        }
-        .nav-bar {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
         }
     </style>
 </head>
@@ -510,17 +498,17 @@
             }
         }
 
-        // --- NATIVE TERMINAL SEARCH ENGINE & INTERNAL WEB VIEWER ---
+        // --- NATIVE OS SEARCH ENGINE WIDGET ---
         function launchNativeSearchEngine() {
             const container = document.getElementById("app-content");
-            document.getElementById("app-title").textContent = "Native OS Web Search";
+            document.getElementById("app-title").textContent = "Native OS Search Engine";
             
             container.innerHTML = `
                 <div class="search-box">
                     <input type="text" id="os-search-input" class="search-input" placeholder="Type a search query and press Enter..." autofocus>
                     <button class="search-btn" onclick="performOSSearch()">Search</button>
                 </div>
-                <div id="os-search-results">Enter a term above to search the web directly inside Mini-OS.</div>
+                <div id="os-search-results">Type a query above to fetch search results inside Mini-OS.</div>
             `;
             
             document.getElementById("app-modal").classList.remove("hidden");
@@ -537,31 +525,32 @@
             const resultsDiv = document.getElementById("os-search-results");
             if (!query) return;
 
-            resultsDiv.innerHTML = "Fetching query results...";
+            resultsDiv.innerHTML = "Fetching results...";
 
             try {
+                // Fetch search query via DuckDuckGo API (Does not use iframe)
                 const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
                 const data = await res.json();
 
                 let html = "";
 
-                if (data.AbstractText) {
+                if (data.Heading && data.AbstractText) {
                     html += `
                         <div class="search-result">
                             <h3>${data.Heading}</h3>
                             <p>${data.AbstractText}</p>
-                            <button class="open-link-btn" onclick="openPageInOS('${data.AbstractURL}')">Open inside Mini-OS ➔</button>
+                            <a href="${data.AbstractURL}" target="_blank">Open Full Article ➔</a>
                         </div>
                     `;
                 }
 
                 if (data.RelatedTopics && data.RelatedTopics.length > 0) {
-                    data.RelatedTopics.slice(0, 6).forEach(topic => {
+                    data.RelatedTopics.slice(0, 8).forEach(topic => {
                         if (topic.Text && topic.FirstURL) {
                             html += `
                                 <div class="search-result">
                                     <p>${topic.Text}</p>
-                                    <button class="open-link-btn" onclick="openPageInOS('${topic.FirstURL}')">Open inside Mini-OS ➔</button>
+                                    <a href="${topic.FirstURL}" target="_blank">Visit Web Page ➔</a>
                                 </div>
                             `;
                         }
@@ -570,10 +559,8 @@
 
                 if (!html) {
                     html = `
-                        <p>No instant text results found for '${query}'.</p>
-                        <button class="open-link-btn" onclick="openPageInOS('https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}')">
-                            View full search results inside Mini-OS ➔
-                        </button>
+                        <p>No instant results for '${query}'.</p>
+                        <p><a href="https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}" target="_blank">Search directly on DuckDuckGo ➔</a></p>
                     `;
                 }
 
@@ -581,18 +568,6 @@
             } catch (err) {
                 resultsDiv.innerHTML = "Error loading search results. Please check network connection.";
             }
-        }
-
-        function openPageInOS(url) {
-            const container = document.getElementById("app-content");
-            document.getElementById("app-title").textContent = `Web Browser: ${url}`;
-
-            container.innerHTML = `
-                <div class="nav-bar">
-                    <button class="search-btn" onclick="launchNativeSearchEngine()">◀ Back to Search</button>
-                </div>
-                <iframe src="${url}" class="os-browser-frame"></iframe>
-            `;
         }
 
         function executeCommand(commandLine) {
@@ -624,7 +599,7 @@
                     print("  mkdir <name>   - Create a new directory");
                     print("  cat <file>     - Read or view text, image, and video files");
                     print("  run <file>     - Launch an app or executable (.exe / .apk)");
-                    print("  search_engine  - Launch Native Search Widget inside Mini-OS");
+                    print("  search_engine  - Open internal search engine widget");
                     print("  open_downloads - Import a file from your computer into /downloads");
                     print("  clear          - Clear the terminal screen");
                     print("  exit           - Exit the mini OS shell");
