@@ -596,9 +596,9 @@
 
                 case "search_engine":
                     print("Launching Web Browser Window inside Mini-OS...");
-                    document.getElementById("app-title").textContent = "Google Search Engine";
-                    // Embeds Google directly inside the Mini-OS application modal window
-                    document.getElementById("app-frame").src = "https://www.bing.com/";
+                    document.getElementById("app-title").textContent = "Web Search Engine";
+                    // Uses DuckDuckGo HTML version to embed cleanly without iframe blocks
+                    document.getElementById("app-frame").src = "https://html.duckduckgo.com/html/";
                     document.getElementById("app-modal").classList.remove("hidden");
                     break;
 
