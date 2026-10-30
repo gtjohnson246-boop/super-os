@@ -199,28 +199,48 @@
             outputDiv.textContent = "";
         }
 
-        // --- KIOSK / OS LOCKDOWN FUNCTIONS ---
+        // --- MAXIMUM KIOSK / OS LOCKDOWN FUNCTIONS ---
         async function enterOSKioskMode() {
             try {
-                // Request full screen mode
+                // 1. Force Fullscreen
                 if (!document.fullscreenElement) {
                     await document.documentElement.requestFullscreen();
                 }
 
-                // Lock system keys on supported browsers (ChromeOS/Chromebook)
+                // 2. Lock Keyboard Shortcuts
                 if ('keyboard' in navigator && 'lock' in navigator.keyboard) {
                     await navigator.keyboard.lock(["Escape", "Tab", "AltGraph"]);
                     print("[SYSTEM] Keyboard inputs locked to OS context.");
                 }
+
+                // 3. Pointer Lock (Traps mouse cursor inside OS window)
+                if (document.body.requestPointerLock) {
+                    document.body.requestPointerLock();
+                }
             } catch (err) {
-                console.warn("Fullscreen/Kiosk mode request failed or postponed:", err);
+                console.warn("Fullscreen/Kiosk mode request deferred:", err);
             }
         }
 
-        // Monitor if fullscreen is exited and allow fast re-entry
+        // Prevent tab close / page refresh attempts
+        window.addEventListener("beforeunload", (e) => {
+            if (isAuthenticated) {
+                e.preventDefault();
+                e.returnValue = "";
+            }
+        });
+
+        // Instantly re-clamp Fullscreen Mode on any keypress if escaped
+        window.addEventListener("keydown", (e) => {
+            if (isAuthenticated && !document.fullscreenElement && !inBios) {
+                enterOSKioskMode();
+            }
+        });
+
+        // Monitor if fullscreen is exited and notify user
         document.addEventListener("fullscreenchange", () => {
             if (!document.fullscreenElement && isAuthenticated && !inBios) {
-                print("\n[WARNING] Kiosk Mode exited. Click anywhere to return to Fullscreen OS mode.");
+                print("\n[WARNING] Kiosk Mode exited. Click or press any key to re-lock OS mode.");
             }
         });
 
@@ -431,7 +451,7 @@
                     print("\nAccess Granted. Welcome back, Gabeee!\n");
                     print("Type 'help' for available commands or 'exit' to quit.\n");
                     isAuthenticated = true;
-                    enterOSKioskMode(); // Enter Fullscreen and Lock Keyboard Inputs upon login
+                    enterOSKioskMode();
                     updatePrompt();
                 } else {
                     loginAttempts--;
