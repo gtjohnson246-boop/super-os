@@ -199,6 +199,31 @@
             outputDiv.textContent = "";
         }
 
+        // --- KIOSK / OS LOCKDOWN FUNCTIONS ---
+        async function enterOSKioskMode() {
+            try {
+                // Request full screen mode
+                if (!document.fullscreenElement) {
+                    await document.documentElement.requestFullscreen();
+                }
+
+                // Lock system keys on supported browsers (ChromeOS/Chromebook)
+                if ('keyboard' in navigator && 'lock' in navigator.keyboard) {
+                    await navigator.keyboard.lock(["Escape", "Tab", "AltGraph"]);
+                    print("[SYSTEM] Keyboard inputs locked to OS context.");
+                }
+            } catch (err) {
+                console.warn("Fullscreen/Kiosk mode request failed or postponed:", err);
+            }
+        }
+
+        // Monitor if fullscreen is exited and allow fast re-entry
+        document.addEventListener("fullscreenchange", () => {
+            if (!document.fullscreenElement && isAuthenticated && !inBios) {
+                print("\n[WARNING] Kiosk Mode exited. Click anywhere to return to Fullscreen OS mode.");
+            }
+        });
+
         function triggerKernelPanic(fileName, fileSize) {
             clearTerminal();
             let sizeInMB = (fileSize / (1024 * 1024)).toFixed(2);
@@ -406,6 +431,7 @@
                     print("\nAccess Granted. Welcome back, Gabeee!\n");
                     print("Type 'help' for available commands or 'exit' to quit.\n");
                     isAuthenticated = true;
+                    enterOSKioskMode(); // Enter Fullscreen and Lock Keyboard Inputs upon login
                     updatePrompt();
                 } else {
                     loginAttempts--;
@@ -435,6 +461,9 @@
                 case "exit":
                     print("Shutting down Mini-JS-OS. Goodbye!");
                     document.getElementById("input-line").classList.add("hidden");
+                    if (document.fullscreenElement) {
+                        document.exitFullscreen().catch(() => {});
+                    }
                     break;
 
                 case "help":
@@ -645,8 +674,13 @@
             }
         });
 
-        // Keep input focused when clicking anywhere on screen
-        document.addEventListener("click", () => userInput.focus());
+        // Click anywhere to focus input or re-trigger fullscreen mode
+        document.addEventListener("click", () => {
+            if (isAuthenticated && !document.fullscreenElement && !inBios) {
+                enterOSKioskMode();
+            }
+            userInput.focus();
+        });
 
         // Initialize App
         showBootScreen();
