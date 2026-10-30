@@ -495,7 +495,7 @@
                     print("  mkdir <name>   - Create a new directory");
                     print("  cat <file>     - Read or view text, image, and video files");
                     print("  run <file>     - Launch an app or executable (.exe / .apk)");
-                    print("  search_engine  - Open Google in your web browser");
+                    print("  search_engine  - Launch Web Browser inside Mini-OS");
                     print("  open_downloads - Import a file from your computer into /downloads");
                     print("  clear          - Clear the terminal screen");
                     print("  exit           - Exit the mini OS shell");
@@ -595,9 +595,11 @@
                     break;
 
                 case "search_engine":
-                    print("Opening Google in a new tab...");
-                    print("Tip: Download your file, then use 'open_downloads' to load it into mini-os!");
-                    window.open("https://google.com", "_blank");
+                    print("Launching Web Browser Window inside Mini-OS...");
+                    document.getElementById("app-title").textContent = "Google Search Engine";
+                    // Embeds Google directly inside the Mini-OS application modal window
+                    document.getElementById("app-frame").src = "https://www.bing.com/";
+                    document.getElementById("app-modal").classList.remove("hidden");
                     break;
 
                 case "open_downloads":
