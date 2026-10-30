@@ -143,13 +143,25 @@
             margin: 0 0 5px 0;
             color: #cccccc;
         }
-        .search-result a {
+        .open-article-btn {
             color: #55ffff;
-            text-decoration: none;
+            background: none;
+            border: none;
+            font-family: inherit;
+            font-size: 13px;
             font-weight: bold;
-        }
-        .search-result a:hover {
+            cursor: pointer;
+            padding: 0;
             text-decoration: underline;
+        }
+        .article-view {
+            color: #ffffff;
+            line-height: 1.6;
+        }
+        .article-view h2 {
+            color: #00ff00;
+            border-bottom: 1px solid #00ff00;
+            padding-bottom: 5px;
         }
     </style>
 </head>
@@ -500,17 +512,17 @@
             }
         }
 
-        // --- NATIVE TERMINAL SEARCH ENGINE (NO IFRAME BLOCKS) ---
+        // --- NATIVE OS SEARCH & INTERNAL PAGE READER (NO IFRAMES) ---
         function launchNativeSearchEngine() {
             const container = document.getElementById("app-content");
-            document.getElementById("app-title").textContent = "Native OS Web Search";
+            document.getElementById("app-title").textContent = "Native OS Web Search Engine";
             
             container.innerHTML = `
                 <div class="search-box">
-                    <input type="text" id="os-search-input" class="search-input" placeholder="Type a search query and press Enter..." autofocus>
+                    <input type="text" id="os-search-input" class="search-input" placeholder="Type a search query (e.g. Hawaii, Linux, Computers) and press Enter..." autofocus>
                     <button class="search-btn" onclick="performOSSearch()">Search</button>
                 </div>
-                <div id="os-search-results">Enter a term above to search the web directly inside Mini-OS.</div>
+                <div id="os-search-results">Enter a topic above to search and read pages directly inside Mini-OS.</div>
             `;
             
             document.getElementById("app-modal").classList.remove("hidden");
@@ -527,49 +539,55 @@
             const resultsDiv = document.getElementById("os-search-results");
             if (!query) return;
 
-            resultsDiv.innerHTML = "Fetching search query...";
+            resultsDiv.innerHTML = "Searching encyclopedia database...";
 
             try {
-                const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
+                // Uses Wikipedia Search API (Free & unblocked, allows full text fetching inside JS)
+                const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&format=json&origin=*`);
                 const data = await res.json();
 
                 let html = "";
-
-                if (data.Heading && data.AbstractText) {
-                    html += `
-                        <div class="search-result">
-                            <h3>${data.Heading}</h3>
-                            <p>${data.AbstractText}</p>
-                            <a href="${data.AbstractURL}" target="_blank" rel="noopener noreferrer">Open Link in New Window ➔</a>
-                        </div>
-                    `;
-                }
-
-                if (data.RelatedTopics && data.RelatedTopics.length > 0) {
-                    data.RelatedTopics.slice(0, 8).forEach(topic => {
-                        if (topic.Text && topic.FirstURL) {
-                            html += `
-                                <div class="search-result">
-                                    <p>${topic.Text}</p>
-                                    <a href="${topic.FirstURL}" target="_blank" rel="noopener noreferrer">Open Link in New Window ➔</a>
-                                </div>
-                            `;
-                        }
+                if (data.query && data.query.search && data.query.search.length > 0) {
+                    data.query.search.forEach(item => {
+                        html += `
+                            <div class="search-result">
+                                <h3>${item.title}</h3>
+                                <p>${item.snippet}...</p>
+                                <button class="open-article-btn" onclick="readArticleInOS('${encodeURIComponent(item.title)}')">Read Full Page inside Mini-OS ➔</button>
+                            </div>
+                        `;
                     });
-                }
-
-                if (!html) {
-                    html = `
-                        <p>No instant text results found for '${query}'.</p>
-                        <p><a href="https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}" target="_blank" rel="noopener noreferrer">
-                            Open DuckDuckGo results in a new tab ➔
-                        </a></p>
-                    `;
+                } else {
+                    html = `<p>No search results found for '${query}'. Try another search query.</p>`;
                 }
 
                 resultsDiv.innerHTML = html;
             } catch (err) {
-                resultsDiv.innerHTML = "Error loading search results. Please check your network connection.";
+                resultsDiv.innerHTML = "Error fetching search query. Check internet connection.";
+            }
+        }
+
+        async function readArticleInOS(title) {
+            const container = document.getElementById("app-content");
+            const decodedTitle = decodeURIComponent(title);
+            document.getElementById("app-title").textContent = `Mini-OS Reader: ${decodedTitle}`;
+            
+            container.innerHTML = "<p>Loading full page text...</p>";
+
+            try {
+                // Fetches full text content of the page directly without iframe
+                const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${title}`);
+                const data = await res.json();
+
+                container.innerHTML = `
+                    <button class="search-btn" style="margin-bottom:15px;" onclick="launchNativeSearchEngine()">◀ Back to Search</button>
+                    <div class="article-view">
+                        <h2>${data.title}</h2>
+                        <p>${data.extract || "No full summary text available."}</p>
+                    </div>
+                `;
+            } catch (err) {
+                container.innerHTML = "<p>Error loading page text content.</p>";
             }
         }
 
