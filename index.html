@@ -106,6 +106,8 @@
             flex-grow: 1;
             color: #00ff00;
             font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
         }
         .search-box {
             display: flex;
@@ -498,17 +500,17 @@
             }
         }
 
-        // --- NATIVE OS SEARCH ENGINE WIDGET ---
+        // --- NATIVE TERMINAL SEARCH ENGINE (NO IFRAME BLOCKS) ---
         function launchNativeSearchEngine() {
             const container = document.getElementById("app-content");
-            document.getElementById("app-title").textContent = "Native OS Search Engine";
+            document.getElementById("app-title").textContent = "Native OS Web Search";
             
             container.innerHTML = `
                 <div class="search-box">
                     <input type="text" id="os-search-input" class="search-input" placeholder="Type a search query and press Enter..." autofocus>
                     <button class="search-btn" onclick="performOSSearch()">Search</button>
                 </div>
-                <div id="os-search-results">Type a query above to fetch search results inside Mini-OS.</div>
+                <div id="os-search-results">Enter a term above to search the web directly inside Mini-OS.</div>
             `;
             
             document.getElementById("app-modal").classList.remove("hidden");
@@ -525,10 +527,9 @@
             const resultsDiv = document.getElementById("os-search-results");
             if (!query) return;
 
-            resultsDiv.innerHTML = "Fetching results...";
+            resultsDiv.innerHTML = "Fetching search query...";
 
             try {
-                // Fetch search query via DuckDuckGo API (Does not use iframe)
                 const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`);
                 const data = await res.json();
 
@@ -539,7 +540,7 @@
                         <div class="search-result">
                             <h3>${data.Heading}</h3>
                             <p>${data.AbstractText}</p>
-                            <a href="${data.AbstractURL}" target="_blank">Open Full Article ➔</a>
+                            <a href="${data.AbstractURL}" target="_blank" rel="noopener noreferrer">Open Link in New Window ➔</a>
                         </div>
                     `;
                 }
@@ -550,7 +551,7 @@
                             html += `
                                 <div class="search-result">
                                     <p>${topic.Text}</p>
-                                    <a href="${topic.FirstURL}" target="_blank">Visit Web Page ➔</a>
+                                    <a href="${topic.FirstURL}" target="_blank" rel="noopener noreferrer">Open Link in New Window ➔</a>
                                 </div>
                             `;
                         }
@@ -559,14 +560,16 @@
 
                 if (!html) {
                     html = `
-                        <p>No instant results for '${query}'.</p>
-                        <p><a href="https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}" target="_blank">Search directly on DuckDuckGo ➔</a></p>
+                        <p>No instant text results found for '${query}'.</p>
+                        <p><a href="https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}" target="_blank" rel="noopener noreferrer">
+                            Open DuckDuckGo results in a new tab ➔
+                        </a></p>
                     `;
                 }
 
                 resultsDiv.innerHTML = html;
             } catch (err) {
-                resultsDiv.innerHTML = "Error loading search results. Please check network connection.";
+                resultsDiv.innerHTML = "Error loading search results. Please check your network connection.";
             }
         }
 
@@ -599,7 +602,7 @@
                     print("  mkdir <name>   - Create a new directory");
                     print("  cat <file>     - Read or view text, image, and video files");
                     print("  run <file>     - Launch an app or executable (.exe / .apk)");
-                    print("  search_engine  - Open internal search engine widget");
+                    print("  search_engine  - Launch Native Search Widget inside Mini-OS");
                     print("  open_downloads - Import a file from your computer into /downloads");
                     print("  clear          - Clear the terminal screen");
                     print("  exit           - Exit the mini OS shell");
