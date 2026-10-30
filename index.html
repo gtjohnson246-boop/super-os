@@ -143,25 +143,13 @@
             margin: 0 0 5px 0;
             color: #cccccc;
         }
-        .open-article-btn {
+        .search-result a {
             color: #55ffff;
-            background: none;
-            border: none;
-            font-family: inherit;
-            font-size: 13px;
+            text-decoration: none;
             font-weight: bold;
-            cursor: pointer;
-            padding: 0;
+        }
+        .search-result a:hover {
             text-decoration: underline;
-        }
-        .article-view {
-            color: #ffffff;
-            line-height: 1.6;
-        }
-        .article-view h2 {
-            color: #00ff00;
-            border-bottom: 1px solid #00ff00;
-            padding-bottom: 5px;
         }
     </style>
 </head>
@@ -235,30 +223,6 @@
                         }
                     }
                 }
-            }
-        };
-
-        // Built-in Internal Database (Guaranteed offline execution)
-        const localKnowledgeBase = {
-            "hawaii": {
-                title: "Hawaii",
-                snippet: "Hawaii is an island state located in the Western United States, in the Pacific Ocean.",
-                content: "Hawaii is a state in the Western United States, located in the Pacific Ocean about 2,000 miles from the U.S. mainland. It is the only state outside North America, the only state composed entirely of islands, and the only state in the tropics. Its capital is Honolulu on the island of Oahu."
-            },
-            "linux": {
-                title: "Linux Operating System",
-                snippet: "Linux is a family of open-source Unix-like operating systems based on the Linux kernel.",
-                content: "Linux is an open-source Unix-like operating system kernel first released by Linus Torvalds on September 17, 1991. Linux is typically packaged as a Linux distribution, which includes the kernel and supporting system software and libraries."
-            },
-            "chromeos": {
-                title: "ChromeOS",
-                snippet: "ChromeOS is a Linux-based operating system designed by Google.",
-                content: "ChromeOS is an operating system designed by Google that is derived from the open-source Chromium OS and uses the Google Chrome web browser as its principal user interface."
-            },
-            "computer": {
-                title: "Computer Systems",
-                snippet: "A computer is a machine that can be programmed to carry out sequences of arithmetic or logical operations.",
-                content: "Modern computers consist of processing elements (CPU), memory units (RAM), and input/output peripheral devices. They process digital data using instruction sets."
             }
         };
 
@@ -536,17 +500,17 @@
             }
         }
 
-        // --- NATIVE OFFLINE SEARCH ENGINE & READER ---
+        // --- NATIVE TERMINAL SEARCH ENGINE (WITH CORS PROXY RELAY) ---
         function launchNativeSearchEngine() {
             const container = document.getElementById("app-content");
-            document.getElementById("app-title").textContent = "Native OS Search Engine";
+            document.getElementById("app-title").textContent = "Native OS Web Search Engine";
             
             container.innerHTML = `
                 <div class="search-box">
-                    <input type="text" id="os-search-input" class="search-input" placeholder="Type a search query (e.g. Hawaii, Linux, ChromeOS)..." autofocus>
+                    <input type="text" id="os-search-input" class="search-input" placeholder="Type a search query and press Enter..." autofocus>
                     <button class="search-btn" onclick="performOSSearch()">Search</button>
                 </div>
-                <div id="os-search-results">Type a query above to search inside Mini-OS.</div>
+                <div id="os-search-results">Enter a term above to search the web directly inside Mini-OS.</div>
             `;
             
             document.getElementById("app-modal").classList.remove("hidden");
@@ -558,47 +522,54 @@
             });
         }
 
-        function performOSSearch() {
-            const query = document.getElementById("os-search-input").value.trim().toLowerCase();
+        async function performOSSearch() {
+            const query = document.getElementById("os-search-input").value.trim();
             const resultsDiv = document.getElementById("os-search-results");
             if (!query) return;
 
-            let html = "";
-            let matches = 0;
+            resultsDiv.innerHTML = "Routing request through secure proxy...";
 
-            Object.keys(localKnowledgeBase).forEach(key => {
-                const item = localKnowledgeBase[key];
-                if (key.includes(query) || item.title.toLowerCase().includes(query) || item.snippet.toLowerCase().includes(query)) {
-                    matches++;
+            try {
+                // Wrap request inside corsproxy.io to bypass school network CORS & domain filters
+                const targetUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+                const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+
+                const res = await fetch(proxiedUrl);
+                const data = await res.json();
+
+                let html = "";
+
+                if (data.Heading && data.AbstractText) {
                     html += `
                         <div class="search-result">
-                            <h3>${item.title}</h3>
-                            <p>${item.snippet}</p>
-                            <button class="open-article-btn" onclick="readArticleInOS('${key}')">Read Page inside Mini-OS ➔</button>
+                            <h3>${data.Heading}</h3>
+                            <p>${data.AbstractText}</p>
+                            <a href="${data.AbstractURL}" target="_blank" rel="noopener noreferrer">Open Link in New Tab ➔</a>
                         </div>
                     `;
                 }
-            });
 
-            if (matches === 0) {
-                html = `<p>No local entries found matching '${query}'. Available topics: hawaii, linux, chromeos, computer.</p>`;
+                if (data.RelatedTopics && data.RelatedTopics.length > 0) {
+                    data.RelatedTopics.slice(0, 8).forEach(topic => {
+                        if (topic.Text && topic.FirstURL) {
+                            html += `
+                                <div class="search-result">
+                                    <p>${topic.Text}</p>
+                                    <a href="${topic.FirstURL}" target="_blank" rel="noopener noreferrer">Open Link in New Tab ➔</a>
+                                </div>
+                            `;
+                        }
+                    });
+                }
+
+                if (!html) {
+                    html = `<p>No instant results found for '${query}'. Try another search query.</p>`;
+                }
+
+                resultsDiv.innerHTML = html;
+            } catch (err) {
+                resultsDiv.innerHTML = "Error fetching search results. The network proxy request was blocked.";
             }
-
-            resultsDiv.innerHTML = html;
-        }
-
-        function readArticleInOS(key) {
-            const container = document.getElementById("app-content");
-            const item = localKnowledgeBase[key];
-            document.getElementById("app-title").textContent = `Mini-OS Reader: ${item.title}`;
-
-            container.innerHTML = `
-                <button class="search-btn" style="margin-bottom:15px;" onclick="launchNativeSearchEngine()">◀ Back to Search</button>
-                <div class="article-view">
-                    <h2>${item.title}</h2>
-                    <p>${item.content}</p>
-                </div>
-            `;
         }
 
         function executeCommand(commandLine) {
