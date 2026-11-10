@@ -13,7 +13,7 @@
             min-width: 320px;
             height: 100vh;
             overflow: hidden;
-            background-color: #101914;
+            background: #dfe7df;
             color: #f3f5ef;
             font-family: Arial, sans-serif;
         }
@@ -65,7 +65,91 @@
             flex: 1;
             min-height: 0;
             overflow: hidden;
-            background: #101914 url("./wallpaper.png") center / contain no-repeat;
+            background: #dfe7df;
+        }
+        .tree-scene {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        .tree-scene .canopy {
+            position: absolute;
+            left: 50%;
+            top: 25px;
+            width: 420px;
+            height: 300px;
+            transform: translateX(-50%);
+            filter: drop-shadow(0 8px 0 rgba(0, 0, 0, 0.04));
+        }
+        .tree-scene .trunk {
+            position: absolute;
+            left: 50%;
+            bottom: -12px;
+            width: 120px;
+            height: 290px;
+            transform: translateX(-50%);
+            background: linear-gradient(90deg, #2d6d2e 0%, #1f5b25 35%, #123d1b 100%);
+            border-radius: 16px 16px 10px 10px;
+            box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.12);
+        }
+        .tree-scene .leaf {
+            position: absolute;
+            background: linear-gradient(135deg, #78a954 0%, #4a7e2e 54%, #2e5d1b 100%);
+            border: 3px solid rgba(255, 255, 255, 0.62);
+            border-radius: 78% 0 78% 0 / 80% 0 78% 0;
+            box-shadow: inset 0 0 0 2px rgba(20, 30, 20, 0.10);
+        }
+        .tree-scene .leaf.accent {
+            background: linear-gradient(135deg, #dfe7b0 0%, #c9d36d 56%, #a9b74d 100%);
+        }
+        .tree-scene .leaf.l1 {
+            left: 110px;
+            top: 44px;
+            width: 215px;
+            height: 112px;
+            transform: rotate(-28deg);
+        }
+        .tree-scene .leaf.l2 {
+            left: 108px;
+            top: 88px;
+            width: 200px;
+            height: 100px;
+            transform: rotate(-8deg);
+        }
+        .tree-scene .leaf.l3 {
+            right: 90px;
+            top: 40px;
+            width: 210px;
+            height: 110px;
+            transform: rotate(30deg);
+        }
+        .tree-scene .leaf.l4 {
+            right: 86px;
+            top: 98px;
+            width: 195px;
+            height: 95px;
+            transform: rotate(10deg);
+        }
+        .tree-scene .leaf.accent.a1 {
+            left: 168px;
+            top: 106px;
+            width: 98px;
+            height: 68px;
+            transform: rotate(-20deg);
+        }
+        .tree-scene .leaf.accent.a2 {
+            right: 160px;
+            top: 94px;
+            width: 96px;
+            height: 64px;
+            transform: rotate(22deg);
+        }
+        .tree-scene .leaf.l5 {
+            left: 50%;
+            top: 128px;
+            width: 200px;
+            height: 100px;
+            transform: translateX(-50%) rotate(-4deg);
         }
         .desktop-title {
             position: absolute;
@@ -201,6 +285,18 @@
             <span class="tab-hint">Choose Shell to open the terminal</span>
         </nav>
         <main id="desktop-view" role="tabpanel" aria-labelledby="desktop-tab">
+            <div class="tree-scene" aria-hidden="true">
+                <div class="canopy">
+                    <div class="leaf l1"></div>
+                    <div class="leaf l2"></div>
+                    <div class="leaf l3"></div>
+                    <div class="leaf l4"></div>
+                    <div class="leaf l5"></div>
+                    <div class="leaf accent a1"></div>
+                    <div class="leaf accent a2"></div>
+                </div>
+                <div class="trunk"></div>
+            </div>
             <h1 class="desktop-title">super-os</h1>
             <div class="desktop-shortcuts" aria-label="Desktop shortcuts">
                 <button class="desktop-shortcut" id="google-shortcut" type="button">
