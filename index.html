@@ -14,10 +14,6 @@
             height: 100vh;
             overflow: hidden;
             background-color: #101914;
-            background-image: url("wallpaper.png");
-            background-position: center;
-            background-repeat: no-repeat;
-            background-size: contain;
             color: #f3f5ef;
             font-family: Arial, sans-serif;
         }
@@ -68,7 +64,10 @@
             position: relative;
             flex: 1;
             min-height: 0;
-            background-image: linear-gradient(180deg, #10271a15, #10271a50);
+            background-image: linear-gradient(180deg, #10271a15, #10271a50), url("wallpaper.png");
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: auto, contain;
         }
         .desktop-title {
             position: absolute;
@@ -134,6 +133,15 @@
             font-size: 14px;
             line-height: 1.4;
         }
+        #google-view {
+            flex: 1;
+            min-height: 0;
+        }
+        #google-frame {
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
         #terminal-output {
             white-space: pre-wrap;
             margin-bottom: 10px;
@@ -187,7 +195,8 @@
         <nav class="tab-bar" role="tablist" aria-label="OS windows">
             <button class="tab-button active" id="desktop-tab" type="button" role="tab" aria-selected="true" aria-controls="desktop-view" data-view="desktop">Desktop</button>
             <button class="tab-button" id="shell-tab" type="button" role="tab" aria-selected="false" aria-controls="shell-view" data-view="shell">Shell</button>
-            <button class="new-tab-button" id="new-tab" type="button" title="Open Google in a new browser tab">+ New tab</button>
+            <button class="tab-button hidden" id="google-tab" type="button" role="tab" aria-selected="false" aria-controls="google-view" data-view="google">Google</button>
+            <button class="new-tab-button" id="new-tab" type="button" title="Open Google in the OS">+ New tab</button>
             <span class="tab-hint">Choose Shell to open the terminal</span>
         </nav>
         <main id="desktop-view" role="tabpanel" aria-labelledby="desktop-tab">
@@ -210,6 +219,9 @@
                 <span id="prompt"></span>
                 <input type="text" id="user-input" autocomplete="off" spellcheck="false" aria-label="Shell command">
             </div>
+        </section>
+        <section id="google-view" class="hidden" role="tabpanel" aria-labelledby="google-tab">
+            <iframe id="google-frame" title="Google" src="https://www.google.com/webhp?igu=1"></iframe>
         </section>
     </div>
 
@@ -252,19 +264,30 @@
         const userInput = document.getElementById("user-input");
         const desktopView = document.getElementById("desktop-view");
         const shellView = document.getElementById("shell-view");
-        const desktopTab = document.getElementById("desktop-tab");
-        const shellTab = document.getElementById("shell-tab");
+        const viewElements = {
+            desktop: desktopView,
+            shell: shellView,
+            google: document.getElementById("google-view")
+        };
+        const viewTabs = {
+            desktop: document.getElementById("desktop-tab"),
+            shell: document.getElementById("shell-tab"),
+            google: document.getElementById("google-tab")
+        };
 
         function selectView(view) {
-            const showShell = view === "shell";
-            desktopView.classList.toggle("hidden", showShell);
-            shellView.classList.toggle("hidden", !showShell);
-            desktopTab.classList.toggle("active", !showShell);
-            shellTab.classList.toggle("active", showShell);
-            desktopTab.setAttribute("aria-selected", String(!showShell));
-            shellTab.setAttribute("aria-selected", String(showShell));
+            for (const [name, element] of Object.entries(viewElements)) {
+                const isSelected = name === view;
+                element.classList.toggle("hidden", !isSelected);
+                viewTabs[name].classList.toggle("active", isSelected);
+                viewTabs[name].setAttribute("aria-selected", String(isSelected));
+            }
 
-            if (showShell) {
+            if (view === "google") {
+                viewTabs.google.classList.remove("hidden");
+            }
+
+            if (view === "shell") {
                 if (!isBooted) showBootScreen();
                 userInput.focus();
             } else {
@@ -277,11 +300,11 @@
         });
 
         document.getElementById("new-tab").addEventListener("click", () => {
-            window.open("https://www.google.com", "_blank", "noopener");
+            selectView("google");
         });
 
         document.getElementById("google-shortcut").addEventListener("click", () => {
-            window.open("https://www.google.com", "_blank", "noopener");
+            selectView("google");
         });
 
         function print(text = "") {
